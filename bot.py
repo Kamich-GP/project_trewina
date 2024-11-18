@@ -11,7 +11,9 @@ bot = telebot.TeleBot('7864118054:AAFdpvfFsiOlzUtBAez5bNg-95NlVuuoOXs')
 def start(message):
     user_id = message.from_user.id
     if database.check_user(user_id):
-        bot.send_message(user_id, f'Добро пожаловать, @{message.from_user.username}!')
+        bot.send_message(user_id, f'Добро пожаловать, @{message.from_user.username}!',
+                         reply_markup=telebot.types.ReplyKeyboardRemove())
+        bot.send_message(user_id, 'Выберите пункт меню:', reply_markup=buttons.main_menu(database.get_pr_buttons()))
     else:
         bot.send_message(user_id, 'Привет! Давай начнем регистрацию!\nНапиши свое имя',
                          reply_markup=telebot.types.ReplyKeyboardRemove())

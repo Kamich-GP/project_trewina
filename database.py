@@ -30,3 +30,75 @@ def check_user(tg_id):
         return True
     else:
         return False
+
+
+## Методы для продуктов. Клиентская сторона ##
+# Вывод всех товаров
+def get_all_pr():
+    return sql.execute('SELECT * FROM products;').fetchall()
+
+
+# Вывод товаров для кнопок
+def get_pr_buttons():
+    all_products = sql.execute('SELECT pr_id, pr_name, pr_count FROM products;').fetchall()
+    in_stock = [n for n in all_products if n[2] > 0]
+    return in_stock
+
+
+# Вывод конкретного товара
+def get_exact_pr(pr_id):
+    return sql.execute('SELECT * FROM products WHERE pr_id=?;', (pr_id,)).fetchone()
+
+
+# Вывод цены конкретного товара
+def get_exact_price(pr_name):
+    return sql.execute('SELECT pr_price FROM products WHERE pr_name=?;', (pr_name,)).fetchone()
+
+
+## Методы для корзины ##
+# Добавление в корзину
+def add_to_cart(user_id, user_product, product_amount):
+    sql.execute('INSERT INTO cart VALUES (?, ?, ?);', (user_id, user_product, product_amount))
+    # Фиксируем изменения
+    connection.commit()
+
+
+# Очистка корзины
+def clear_cart(user_id):
+    sql.execute('DELETE FROM cart WHERE user_id=?;', (user_id,))
+    #Фиксируем изменения
+    connection.commit()
+
+
+# Вывод корзины
+def show_cart(user_id):
+    return sql.execute('SELECT * FROM cart WHERE user_id=?;', (user_id,)).fetchall()
+
+
+# Оформление заказа
+def make_order(user_id):
+    # Достаем названия товаров и их кол-во с КОРЗИНЫ
+    product_names = sql.execute('SELECT user_product FROM cart WHERE user_id=?;', (user_id,)).fetchall()
+    product_counts = sql.execute('SELECT pr_amount FROM cart WHERE user_id=?;', (user_id,)).fetchall()
+
+    # Достаем кол-во продуктов со СКЛАДА
+    stock_quantity = [sql.execute('SELECT pr_count FROM products WHERE pr_name=?;', (i[0],)).fetchone()[0]
+                      for i in product_names]
+    totals = []
+
+    # e - сколько взял пользователь
+    for e in product_counts:
+        # с - количество со СКЛАДА
+        for c in stock_quantity:
+            totals.append(c - e[0])
+
+
+    # t - измененное количество товара
+    for t in totals:
+        # n - названия товаров
+        for n in product_names:
+            sql.execute('UPDATE products SET pr_count=? WHERE pr_name=?;', (t, n[0]))
+
+    # Фиксируем изменения
+    connection.commit()
+    return stock_quantity, totals
