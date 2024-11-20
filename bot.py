@@ -21,8 +21,6 @@ def start(message):
         bot.register_next_step_handler(message, get_name)
 
 
-# Обработчик текстовых сообщений
-@bot.message_handler(content_types=['text'])
 # Получение имени
 def get_name(message):
     user_id = message.from_user.id
@@ -48,6 +46,53 @@ def get_num(message, user_name):
         bot.send_message(user_id, 'Отправьте контакт по кнопке или отправьте контакт через скрепку!')
         # Возврат на этап получения номера
         bot.register_next_step_handler(message, get_num, user_name)
+
+
+@bot.callback_query_handler(lambda call: int(call.data) in [i[0] for i in database.get_all_pr()])
+def choose_pr_count(call):
+    # Определяем id пользователя
+    user_id = call.message.chat.id
+    # Достаем всю информацию о выбранном товаре
+    pr_info = database.get_exact_pr(int(call.data))
+    # Удаляем сообщение с выбором в меню
+    bot.delete_message(chat_id=user_id, message_id=call.message.message_id)
+    # Отправляем фото товара и его описание
+    bot.send_photo(user_id, photo=pr_info[-1], caption=f'{pr_info[1]}\n\n'
+                                                       f'Описание: {pr_info[2]}\n'
+                                                       f'Количество: {pr_info[4]}\n'
+                                                       f'Цена: {pr_info[3]} сум')
+
+
+# Обработчик команды /admin
+@bot.message_handler(commands=['admin'])
+def admin(message):
+    if message.from_user.id == 6775701667:
+        admin_id = message.from_user.id
+        bot.send_message(admin_id, 'Добро пожаловать в админ-панель!', reply_markup=buttons.admin_menu())
+        # Переход на этап выбора
+        bot.register_next_step_handler(message, choice)
+    else:
+        bot.send_message(message.from_user.id, 'Вы не администратор!')
+
+
+# Этап выбора
+def choice(message):
+    admin_id = message.from_user.id
+    if message.text == 'Добавить продукт':
+        bot.send_message(admin_id, 'Напишите данные о продукте в следующем виде:\n\n'
+                                   'Название, Описание, Цена, Количество, Ссылка на фото\n\n'
+                                   'Фотографии можно загрузить на сайте https://postimages.org/, '
+                                   'скопировав прямую ссылку!', reply_markup=telebot.types.ReplyKeyboardRemove())
+        # Переход на этап получения товара
+        bot.register_next_step_handler(message, add_product)
+
+
+# Добавление товара
+def add_product(message):
+    admin_id = message.from_user.id
+    pr_attrs = message.text.split(', ')
+    database.pr_to_db(pr_attrs[0], pr_attrs[1], pr_attrs[2], pr_attrs[3], pr_attrs[4])
+    bot.send_message(admin_id, 'Готово!')
 
 
 bot.polling(non_stop=True)

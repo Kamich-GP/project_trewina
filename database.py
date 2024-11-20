@@ -102,3 +102,47 @@ def make_order(user_id):
     # Фиксируем изменения
     connection.commit()
     return stock_quantity, totals
+
+
+## Администраторская сторона ##
+# Добавления товара в БД
+def pr_to_db(pr_name, pr_des, pr_price, pr_count, pr_photo):
+    if (pr_name,) in sql.execute('SELECT pr_name FROM products;').fetchall():
+        return False
+    else:
+        sql.execute('INSERT INTO products (pr_name, pr_des, pr_price, pr_count, pr_photo) '
+                    'VALUES (?,?,?,?,?);', (pr_name, pr_des, pr_price, pr_count, pr_photo))
+        # Фиксируем изменения
+        connection.commit()
+
+
+# Удаление товара из БД
+def del_product(pr_name):
+    sql.execute('DELETE FROM products WHERE pr_name=?;', (pr_name,))
+    # Фиксируем изменения
+    connection.commit()
+
+
+# Изменение атрибута товара
+def change_attr(keyword, new_value, attr=''):
+    if attr == 'name':
+        sql.execute('UPDATE products SET pr_name=? WHERE pr_name=?;', (new_value, keyword))
+    elif attr == 'des':
+        sql.execute('UPDATE products SET pr_des=? WHERE pr_name=?;', (new_value, keyword))
+    elif attr == 'price':
+        sql.execute('UPDATE products SET pr_price=? WHERE pr_name=?;', (new_value, keyword))
+    elif attr == 'count':
+        sql.execute('UPDATE products SET pr_count=? WHERE pr_name=?;', (new_value, keyword))
+    elif attr == 'photo':
+        sql.execute('UPDATE products SET pr_photo=? WHERE pr_name=?;', (new_value, keyword))
+
+    # Фиксируем изменения
+    connection.commit()
+
+
+# Проверка на наличие товаров в БД
+def check_pr():
+    if sql.execute('SELECT * FROM products;').fetchall():
+        return True
+    else:
+        return False
